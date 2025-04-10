@@ -25,6 +25,23 @@ The SQS infrastructure follows this flow for message processing:
 4. **DLQ Monitoring**
    - Failed messages in the DLQ can be monitored and reprocessed as needed
 
+## 🛠️ Project Structure
+
+```
+.
+├── main.tf                 # Main Terraform configuration with all resources
+├── variables.tf            # Input variable definitions
+├── outputs.tf              # Output value definitions
+├── locals.tf               # Local variable definitions
+├── providers.tf            # Provider configuration
+├── terraform.tfvars        # Variable values for deployment
+└── policies/               # JSON policy templates
+    ├── main_queue_policy_template.json  # Main queue policy template
+    ├── dlq_policy_template.json         # DLQ policy template
+    ├── redrive_policy.json              # Redrive policy configuration
+    └── dlq_allow_policy.json            # DLQ allow policy configuration
+```
+
 ## 🛠️ Terraform Resources
 
 | Resource Type | Purpose |
@@ -39,9 +56,6 @@ The SQS infrastructure follows this flow for message processing:
 ### Prerequisites
 1. **AWS CLI Configured** with valid credentials
 2. **Terraform v1.0+** installed
-3. **Remote State Configuration**:
-   - S3 bucket for storing Terraform state
-   - Global state file with project configuration
 
 ### Configuration Variables
 - `max_receive_count`: Maximum number of processing attempts before sending to DLQ (default: 5)

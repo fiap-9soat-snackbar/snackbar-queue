@@ -1,28 +1,10 @@
-data "terraform_remote_state" "global" {
-  backend = "s3"
-  config = {
-    bucket = var.remote_state_bucket
-    key    = var.remote_state_key
-    region = var.remote_state_region
-  }
-}
-
-# Dead Letter Queue
-resource "aws_sqs_queue" "dlq" {
-  name = "${data.terraform_remote_state.global.outputs.project_name}-dlq"
-  fifo_queue = false
-  message_retention_seconds = var.message_retention_seconds
-  
-  tags = {
-    Name        = "${data.terraform_remote_state.global.outputs.project_name}-dlq"
-    Environment = data.terraform_remote_state.global.outputs.environment
-    Project     = data.terraform_remote_state.global.outputs.project_name
-  }
-}
+#--------------------------------------------------------------
+# SQS Queue Resources
+#--------------------------------------------------------------
 
 # Main Queue
 resource "aws_sqs_queue" "template_queue" {
-  name                       = "${data.terraform_remote_state.global.outputs.project_name}-queue"
+  name                       = "${local.project_name}-queue"
   fifo_queue                 = false
   delay_seconds              = var.delay_seconds
   max_message_size           = var.max_message_size
@@ -31,8 +13,68 @@ resource "aws_sqs_queue" "template_queue" {
   visibility_timeout_seconds = var.visibility_timeout_seconds
   
   tags = {
-    Name        = "${data.terraform_remote_state.global.outputs.project_name}-queue"
-    Environment = data.terraform_remote_state.global.outputs.environment
-    Project     = data.terraform_remote_state.global.outputs.project_name
+    Name        = "${local.project_name}-queue"
+    Environment = local.environment
+    Project     = local.project_name
   }
+}
+
+# Dead Letter Queue (DLQ)
+resource "aws_sqs_queue" "dlq" {
+  name                      = "${local.project_name}-dlq"
+  fifo_queue                = false
+  message_retention_seconds = var.message_retention_seconds
+  
+  tags = {
+    Name        = "${local.project_name}-dlq"
+    Environment = local.environment
+    Project     = local.project_name
+  }
+}
+
+#--------------------------------------------------------------
+# Queue Policies
+#--------------------------------------------------------------
+
+# Main Queue Policy
+resource "aws_sqs_queue_policy" "template_queue_policy" {
+  queue_url = aws_sqs_queue.template_queue.id
+  policy = templatefile("${path.module}/policies/main_queue_policy_template.json", {
+    queue_name = aws_sqs_queue.template_queue.name,
+    queue_arn  = aws_sqs_queue.template_queue.arn
+  })
+}
+
+# DLQ Policy
+resource "aws_sqs_queue_policy" "dlq_policy" {
+  queue_url = aws_sqs_queue.dlq.id
+  policy = templatefile("${path.module}/policies/dlq_policy_template.json", {
+    queue_name       = aws_sqs_queue.dlq.name,
+    queue_arn        = aws_sqs_queue.dlq.arn,
+    source_queue_arn = aws_sqs_queue.template_queue.arn
+  })
+}
+
+#--------------------------------------------------------------
+# Redrive Policies
+#--------------------------------------------------------------
+
+# Redrive policy for the main queue
+# This sends messages to the DLQ after the specified number of failures
+resource "aws_sqs_queue_redrive_policy" "template_queue_redrive_policy" {
+  queue_url = aws_sqs_queue.template_queue.id
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.dlq.arn
+    maxReceiveCount     = jsondecode(file("${path.module}/policies/redrive_policy.json")).maxReceiveCount
+  })
+}
+
+# Redrive allow policy for the DLQ
+# This controls which source queues can use this queue as DLQ
+resource "aws_sqs_queue_redrive_allow_policy" "dlq_redrive_allow_policy" {
+  queue_url = aws_sqs_queue.dlq.id
+  redrive_allow_policy = jsonencode({
+    redrivePermission = jsondecode(file("${path.module}/policies/dlq_allow_policy.json")).redrivePermission
+    sourceQueueArns   = [aws_sqs_queue.template_queue.arn]
+  })
 }

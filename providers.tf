@@ -14,13 +14,13 @@ terraform {
 }
 
 provider "aws" {
-  region = data.terraform_remote_state.global.outputs.region
+  region = local.region
   
   default_tags {
     tags = {
       ManagedBy   = "Terraform"
-      Environment = data.terraform_remote_state.global.outputs.environment
-      Project     = data.terraform_remote_state.global.outputs.project_name
+      Environment = local.environment
+      Project     = local.project_name
     }
   }
 }
