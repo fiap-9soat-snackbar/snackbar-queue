@@ -27,18 +27,3 @@ output "dlq_name" {
   description = "The name of the SQS dead letter queue"
   value       = aws_sqs_queue.dlq.name
 }
-
-output "region" {
-  description = "The AWS region where resources are deployed"
-  value       = local.region
-}
-
-output "environment" {
-  description = "The environment (dev, staging, prod)"
-  value       = local.environment
-}
-
-output "project_name" {
-  description = "The name of the project"
-  value       = local.project_name
-}

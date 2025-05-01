@@ -4,7 +4,7 @@
 
 # Main Queue
 resource "aws_sqs_queue" "template_queue" {
-  name                       = "${local.project_name}-queue"
+  name                       = "${data.terraform_remote_state.global.outputs.project_name}-queue"
   fifo_queue                 = false
   delay_seconds              = var.delay_seconds
   max_message_size           = var.max_message_size
@@ -13,22 +13,20 @@ resource "aws_sqs_queue" "template_queue" {
   visibility_timeout_seconds = var.visibility_timeout_seconds
   
   tags = {
-    Name        = "${local.project_name}-queue"
-    Environment = local.environment
-    Project     = local.project_name
+    Name        = "${data.terraform_remote_state.global.outputs.project_name}-queue"
+    Project     = data.terraform_remote_state.global.outputs.project_name
   }
 }
 
 # Dead Letter Queue (DLQ)
 resource "aws_sqs_queue" "dlq" {
-  name                      = "${local.project_name}-dlq"
+  name                      = "${data.terraform_remote_state.global.outputs.project_name}-dlq"
   fifo_queue                = false
   message_retention_seconds = var.message_retention_seconds
   
   tags = {
-    Name        = "${local.project_name}-dlq"
-    Environment = local.environment
-    Project     = local.project_name
+    Name        = "${data.terraform_remote_state.global.outputs.project_name}-dlq"
+    Project     = data.terraform_remote_state.global.outputs.project_name
   }
 }
 

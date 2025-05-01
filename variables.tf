@@ -1,3 +1,7 @@
+variable "bucket" {
+  type    = string
+}
+
 variable "max_receive_count" {
   description = "Maximum number of times a message can be received before being sent to the DLQ"
   type        = number
@@ -32,23 +36,4 @@ variable "max_message_size" {
   description = "The limit of how many bytes a message can contain"
   type        = number
   default     = 262144  # 256 KiB
-}
-
-# Remote state configuration
-variable "remote_state_bucket" {
-  description = "S3 bucket containing remote state"
-  type        = string
-  default     = "terraform-state"
-}
-
-variable "remote_state_key" {
-  description = "Path to the global remote state file"
-  type        = string
-  default     = "global/terraform.tfstate"
-}
-
-variable "remote_state_region" {
-  description = "Region of the remote state bucket"
-  type        = string
-  default     = "us-east-1"
 }
